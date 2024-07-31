@@ -2,45 +2,34 @@ import json
 import requests
 
 def fetch_data():
-    url_users = 'https://jsonplaceholder.typicode.com/users'
-    url_todos = 'https://jsonplaceholder.typicode.com/todos'
+    # Fetch users data
+    users_response = requests.get('https://jsonplaceholder.typicode.com/users')
+    users = users_response.json()
 
-    response_users = requests.get(url_users)
-    response_todos = requests.get(url_todos)
+    # Fetch todos data
+    todos_response = requests.get('https://jsonplaceholder.typicode.com/todos')
+    todos = todos_response.json()
 
-    if response_users.status_code != 200 or response_todos.status_code != 200:
-        raise Exception('Error fetching data from API')
+    # Prepare data in the required format
+    all_data = {}
+    for user in users:
+        user_id = user['id']
+        username = user['username']
+        all_data[user_id] = []
+        
+        user_tasks = [task for task in todos if task['userId'] == user_id]
+        for task in user_tasks:
+            task_info = {
+                'username': username,
+                'task': task['title'],
+                'completed': task['completed']
+            }
+            all_data[user_id].append(task_info)
 
-    users = response_users.json()
-    todos = response_todos.json()
-
-    return users, todos
-
-def create_user_task_dict(users, todos):
-    user_dict = {user['id']: {'username': user['username'], 'tasks': []} for user in users}
-
-    for todo in todos:
-        user_id = todo['userId']
-        task_info = {
-            'task': todo['title'],
-            'completed': todo['completed'],
-            'username': user_dict[user_id]['username']
-        }
-        user_dict[user_id]['tasks'].append(task_info)
-
-    return user_dict
-
-def main():
-    users, todos = fetch_data()
-    user_task_dict = create_user_task_dict(users, todos)
-    
+    # Write data to a JSON file
     with open('todo_all_employees.json', 'w') as json_file:
-        json.dump(user_task_dict, json_file)
-    
-    # Adding print statements to match expected output
-    print("All users found: OK")
-    print("User ID and Tasks output: OK")
+        json.dump(all_data, json_file)
 
 if __name__ == '__main__':
-    main()
+    fetch_data()
 
